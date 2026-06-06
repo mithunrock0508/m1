@@ -12,135 +12,173 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🚗 Vehicle Mileage & ADAS Telemetry Analyzer")
+st.title("🚗 Vehicle Telemetry & ADAS Analyzer")
 
-uploaded_file = st.file_uploader(
-    "Upload CSV File",
-    type=["csv"]
+# ==========================
+# Upload Section
+# ==========================
+
+telemetry_file = st.file_uploader(
+    "Upload Vehicle Telemetry CSV",
+    type=["csv"],
+    key="telemetry"
 )
 
-if uploaded_file:
+adas_file = st.file_uploader(
+    "Upload ADAS CSV",
+    type=["csv"],
+    key="adas"
+)
 
-    df = pd.read_csv(uploaded_file)
+# ==========================
+# TELEMETRY DASHBOARD
+# ==========================
 
-    st.subheader("Dataset Preview")
-    st.dataframe(df.head())
+if telemetry_file:
 
-    st.write("Rows:", df.shape[0])
-    st.write("Columns:", df.shape[1])
+    st.header("🚗 Vehicle Telemetry Dashboard")
 
-    st.divider()
+    telemetry_df = pd.read_csv(telemetry_file)
 
-    # Vehicle Telemetry Dataset
-    if "vehicle_id" in df.columns:
+    st.dataframe(telemetry_df.head())
 
-        st.header("Vehicle Telemetry Analysis")
+    results = vehicle_analysis(telemetry_df)
 
-        results = vehicle_analysis(df)
+    c1, c2, c3, c4 = st.columns(4)
 
-        c1, c2, c3, c4 = st.columns(4)
+    c1.metric(
+        "Average Speed",
+        f"{results['avg_speed']:.2f} km/h"
+    )
 
-        c1.metric(
-            "Average Speed",
-            f"{results['avg_speed']:.2f} km/h"
-        )
+    c2.metric(
+        "Maximum Speed",
+        f"{results['max_speed']:.2f} km/h"
+    )
 
-        c2.metric(
-            "Max Speed",
-            f"{results['max_speed']:.2f} km/h"
-        )
+    c3.metric(
+        "Fuel Level",
+        f"{results['avg_fuel']:.2f}%"
+    )
 
-        c3.metric(
-            "Average Fuel",
-            f"{results['avg_fuel']:.2f}%"
-        )
+    c4.metric(
+        "Engine Temp",
+        f"{results['avg_temp']:.2f} °C"
+    )
 
-        c4.metric(
-            "Average Engine Temp",
-            f"{results['avg_temp']:.2f}°C"
-        )
+    st.subheader("Speed Distribution")
 
-        st.subheader("Speed Distribution")
+    fig = px.histogram(
+        telemetry_df,
+        x="speed_kmh",
+        nbins=25
+    )
 
-        fig = px.histogram(
-            df,
-            x="speed_kmh",
-            nbins=30
-        )
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
-        st.plotly_chart(fig, use_container_width=True)
+    st.subheader("Fuel Trend")
 
-        st.subheader("Fuel Level")
+    fig2 = px.line(
+        telemetry_df.head(1000),
+        y="fuel_level_pct"
+    )
 
-        fig2 = px.line(
-            df.head(500),
-            y="fuel_level_pct"
-        )
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
 
-        st.plotly_chart(fig2, use_container_width=True)
+# ==========================
+# ADAS DASHBOARD
+# ==========================
 
-        st.subheader("Vehicle Status")
+if adas_file:
 
-        st.bar_chart(
-            df["status_code"].value_counts()
-        )
+    st.header("🤖 ADAS Dashboard")
 
-    # ADAS Dataset
-    elif "ADAS_output" in df.columns:
+    adas_df = pd.read_csv(adas_file)
 
-        st.header("ADAS Analysis")
+    st.dataframe(adas_df.head())
 
-        results = adas_analysis(df)
+    results = adas_analysis(adas_df)
 
-        c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
 
-        c1.metric(
-            "Average Speed",
-            f"{results['avg_speed']:.2f} km/h"
-        )
+    c1.metric(
+        "Average Speed",
+        f"{results['avg_speed']:.2f} km/h"
+    )
 
-        c2.metric(
-            "Battery Level",
-            f"{results['battery']:.2f}%"
-        )
+    c2.metric(
+        "Battery Level",
+        f"{results['battery']:.2f}%"
+    )
 
-        c3.metric(
-            "Energy Consumption",
-            f"{results['energy']:.2f}"
-        )
+    c3.metric(
+        "Energy Consumption",
+        f"{results['energy']:.2f}"
+    )
 
-        c4.metric(
-            "Reaction Time",
-            f"{results['reaction']:.2f}s"
-        )
+    c4.metric(
+        "Reaction Time",
+        f"{results['reaction']:.2f} sec"
+    )
 
-        st.subheader("ADAS Decisions")
+    st.subheader("ADAS Output")
 
-        st.bar_chart(
-            df["ADAS_output"].value_counts()
-        )
+    st.bar_chart(
+        adas_df["ADAS_output"].value_counts()
+    )
 
-        st.subheader("Battery Level")
+    st.subheader("Battery Trend")
 
-        fig3 = px.line(
-            df.head(1000),
-            y="battery_level"
-        )
+    fig3 = px.line(
+        adas_df.head(1000),
+        y="battery_level"
+    )
 
-        st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(
+        fig3,
+        use_container_width=True
+    )
 
-        st.subheader("Obstacle Distance")
+    st.subheader("Obstacle Distance vs Speed")
 
-        fig4 = px.scatter(
-            df,
-            x="speed_kmh",
-            y="obstacle_distance",
-            color="ADAS_output"
-        )
+    fig4 = px.scatter(
+        adas_df,
+        x="speed_kmh",
+        y="obstacle_distance",
+        color="ADAS_output"
+    )
 
-        st.plotly_chart(fig4, use_container_width=True)
+    st.plotly_chart(
+        fig4,
+        use_container_width=True
+    )
 
-    else:
-        st.error(
-            "Unknown dataset format."
-        )
+# ==========================
+# BOTH FILES UPLOADED
+# ==========================
+
+if telemetry_file and adas_file:
+
+    st.header("📊 Combined Insights")
+
+    telemetry_df = pd.read_csv(telemetry_file)
+    adas_df = pd.read_csv(adas_file)
+
+    st.write(
+        f"Telemetry Records: {len(telemetry_df)}"
+    )
+
+    st.write(
+        f"ADAS Records: {len(adas_df)}"
+    )
+
+    st.metric(
+        "Combined Records",
+        len(telemetry_df) + len(adas_df)
+    )
